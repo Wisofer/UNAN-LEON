@@ -63,7 +63,6 @@ function App() {
         </div>
       </header>
       <main className="flex-1">
-      <Mapa />
       <Aulas />
       <Wifi />
       <InteractionSection />
