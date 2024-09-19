@@ -7,7 +7,7 @@ import Orientacion from './pages/Orientacion.jsx'
 import AulasVirtuales from './pages/AulasVirtuales.jsx'
 import CorreoInstitucional from './pages/CorreoInstitucional.jsx'
 import Login from './auth/Login.jsx'
-import Wifi from './pages/Wifi.jsx'
+import Mapa from './pages/Mapa.jsx'
 import NotFound from './pages/NotFound.jsx'
 import Register from './auth/Registers.jsx'
 import './index.css'
@@ -34,8 +34,8 @@ const router = createBrowserRouter([
         element: <CorreoInstitucional />,
       },
       {
-        path: "wifi",
-        element: <Wifi />,
+        path: "Mapa",
+        element: <Mapa />,
       },
       {
         path: "*",

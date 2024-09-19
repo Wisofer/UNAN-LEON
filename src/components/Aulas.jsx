@@ -83,7 +83,7 @@ const Aulas = () => {
     <div className="relative w-full">
       <section id="training" className="py-4 sm:py-8 md:py-16 lg:py-24 bg-muted">
         <div className="container mx-auto px-4">
-          <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mb-2 sm:mb-4 text-center">
+          <h2 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-5 sm:mb-8 text-center">
             Capacitación
           </h2>
           <p className="text-xs sm:text-sm md:text-base text-muted-foreground mb-4 sm:mb-6 text-center">

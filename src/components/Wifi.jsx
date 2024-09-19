@@ -1,54 +1,50 @@
 import React from "react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faWifi, faBook, faBuilding, faInfoCircle } from "@fortawesome/free-solid-svg-icons";
 
 const Wifi = () => {
   return (
-    <div>
-      <section className="bg-muted py-12 sm:py-16 lg:py-20">
-        <div className="container grid gap-8 px-4 sm:px-6 lg:px-8 lg:grid-cols-2 lg:items-center">
-          <div className="space-y-6">
-            <h2 className="text-3xl font-bold leading-tight sm:text-4xl">
-              Directorio de Servicios
-            </h2>
-            <p className="text-muted-foreground">
-              Descubre todos los servicios y recursos disponibles en el campus,
-              desde bibliotecas hasta oficinas administrativas.
-            </p>
-            <button className="border border-gray-300 rounded-md py-2 px-4 text-gray-700 hover:bg-gray-100">
-              Explorar Directorio
-            </button>
-          </div>
-          <div className="relative">
-            <img
-              src="/placeholder.svg"
-              width={600}
-              height={400}
-              alt="Services"
-              className="rounded-lg object-cover"
-              style={{ aspectRatio: "600/400", objectFit: "cover" }}
+    <div className="bg-gradient-to-r from-blue-50 to-indigo-50">
+      <section className="py-16 sm:py-20 lg:py-24">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <h2 className="text-4xl font-bold text-center text-blue-600 mb-12">
+            Servicios del Campus
+          </h2>
+          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+            <ServiceCard
+              icon={faWifi}
+              title="WiFi del Campus"
+              description="Conéctate a nuestra red de alta velocidad en todo el campus."
             />
-            <div className="absolute top-4 right-4 rounded-lg bg-background/80 px-4 py-2 backdrop-blur-sm">
-              <div className="flex items-center gap-2">
-                <svg
-                  className="h-5 w-5 text-primary"
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                  aria-hidden="true"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M10 1a1 1 0 00-1 1v2a1 1 0 00-1 1v1a1 1 0 00-1 1v1a1 1 0 00-1 1v1a1 1 0 00-1 1v2a1 1 0 001 1h12a1 1 0 001-1v-2a1 1 0 00-1-1v-1a1 1 0 00-1-1v-1a1 1 0 00-1-1v-1a1 1 0 00-1-1V4a1 1 0 00-1-1V2a1 1 0 00-1-1H10zm-1 2V2h2v1H9zM7 8v-1h6v1H7zm-2 2v-1h10v1H5zm2 2v-1h6v1H7zm-2 2v-1h10v1H5zm12 1H3v-1h12v1z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-                <span>Biblioteca Central</span>
-              </div>
-            </div>
+            <ServiceCard
+              icon={faBook}
+              title="Biblioteca Central"
+              description="Accede a miles de recursos académicos y espacios de estudio."
+            />
+            <ServiceCard
+              icon={faBuilding}
+              title="Oficinas Administrativas"
+              description="Realiza trámites y consultas en nuestras oficinas."
+            />
+          </div>
+          <div className="mt-12 text-center">
+            <button className="bg-blue-600 text-white font-semibold py-3 px-6 rounded-full hover:bg-blue-700 transition duration-300 flex items-center justify-center mx-auto">
+              <FontAwesomeIcon icon={faInfoCircle} className="mr-2" />
+              Explorar Directorio Completo
+            </button>
           </div>
         </div>
       </section>
     </div>
   );
 };
+
+const ServiceCard = ({ icon, title, description }) => (
+  <div className="bg-white rounded-lg shadow-lg p-6 transition-all duration-300 hover:shadow-xl">
+    <FontAwesomeIcon icon={icon} className="text-4xl text-blue-500 mb-4" />
+    <h3 className="text-xl font-semibold mb-2">{title}</h3>
+    <p className="text-gray-600">{description}</p>
+  </div>
+);
 
 export default Wifi;
