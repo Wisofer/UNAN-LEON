@@ -1,92 +1,78 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link, Outlet, useNavigate, useLocation } from "react-router-dom";
 import unan from "../../public/img/escudo.png";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faBars, faTimes, faSignOutAlt, faUser } from "@fortawesome/free-solid-svg-icons";
 import Footer from "../pages/Footer";
-import { supabase } from "../supabase/supabase";
+import { supabase } from '../supabase/supabase';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { auth as firebaseAuth } from '../firebase/firebase';
 
 const Layout = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [user, setUser] = useState(null);
-  const [userName, setUserName] = useState("");
+  const [userName, setUserName] = useState("Usuario");
+  const [authProvider, setAuthProvider] = useState("");
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const menuRef = useRef(null);
+  const userMenuRef = useRef(null);
 
-  // Fetch user and profile information on component mount and auth state change
+  const handleAuthStateChange = async (supabaseUser, firebaseUser) => {
+    if (supabaseUser) {
+      setUser(supabaseUser);
+      setAuthProvider("supabase");
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('name')
+        .eq('id', supabaseUser.id)
+        .single();
+      setUserName(data?.name || "Usuario");
+    } else if (firebaseUser) {
+      setUser(firebaseUser);
+      setAuthProvider("firebase");
+      setUserName(firebaseUser.displayName || "Usuario");
+    } else {
+      setUser(null);
+      setAuthProvider("");
+      setUserName("Usuario");
+    }
+  };
+
   useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        const currentUser = session?.user ?? null;
-        setUser(currentUser);
-        if (currentUser) {
-          const { data, error } = await supabase
-            .from('profiles')
-            .select('name')
-            .eq('id', currentUser.id)
-            .single();
-          if (error) {
-            console.error('Error fetching user name:', error);
-          } else if (data) {
-            setUserName(data.name);
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching user:', error);
-      }
+    const fetchSupabaseUser = async () => {
+      const { data: { user: supabaseUser } } = await supabase.auth.getUser();
+      handleAuthStateChange(supabaseUser, null);
     };
 
-    fetchUser();
-
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        const currentUser = session?.user ?? null;
-        setUser(currentUser);
-        if (currentUser) {
-          const { data, error } = await supabase
-            .from('profiles')
-            .select('name')
-            .eq('id', currentUser.id)
-            .single();
-          if (error) {
-            console.error('Error fetching user name:', error);
-          } else if (data) {
-            setUserName(data.name);
-          }
-          // Redirect if user is authenticated and tries to access login or register routes
-          if (currentUser && (location.pathname === '/login' || location.pathname === '/register')) {
-            navigate('/');
-          }
-        }
-      }
-    );
-
-    return () => {
-      authListener.subscription.unsubscribe();
+    const fetchFirebaseUser = () => {
+      onAuthStateChanged(firebaseAuth, (firebaseUser) => {
+        handleAuthStateChange(null, firebaseUser);
+      });
     };
-  }, [navigate, location]);
 
-  // Handle redirect for unauthenticated users
+    fetchSupabaseUser();
+    fetchFirebaseUser();
+
+    const authListener = supabase.auth.onAuthStateChange((event, session) => {
+      handleAuthStateChange(session?.user, null);
+    });
+
+    return () => authListener.data.subscription.unsubscribe();
+  }, []);
+
   useEffect(() => {
-    const handleRedirects = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        const currentUser = session?.user ?? null;
-        if (!currentUser && (location.pathname === '/login' || location.pathname === '/register')) {
-          navigate('/');
-        }
-      } catch (error) {
-        console.error('Error handling redirects:', error);
+    const handleRedirects = () => {
+      if (!user && (location.pathname === '/login' || location.pathname === '/register')) {
+        navigate('/');
       }
     };
 
     handleRedirects();
-  }, [navigate, location]);
+  }, [navigate, location, user]);
 
-  // Handle loading state
   useEffect(() => {
     setLoading(true);
     const timer = setTimeout(() => {
@@ -95,26 +81,76 @@ const Layout = () => {
 
     return () => clearTimeout(timer);
   }, [location]);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setMenuOpen(false);
+      }
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
+        setUserMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("touchstart", handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("touchstart", handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
   const toggleMenu = () => {
     setMenuOpen(!menuOpen);
+    if (userMenuOpen) setUserMenuOpen(false);
   };
 
   const toggleUserMenu = () => {
     setUserMenuOpen(!userMenuOpen);
+    if (menuOpen) setMenuOpen(false);
   };
 
   const handleLogin = () => {
     navigate('/login');
+    setMenuOpen(false);
   };
 
   const handleRegister = () => {
     navigate('/register');
+    setMenuOpen(false);
   };
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    if (authProvider === "supabase") {
+      await supabase.auth.signOut();
+    } else if (authProvider === "firebase") {
+      await signOut(firebaseAuth);
+    }
     navigate('/');
+    setUserMenuOpen(false);
   };
+
+  const handleNavigation = (path) => {
+    navigate(path);
+    setMenuOpen(false);
+  };
+
+  const AuthButtons = () => (
+    <>
+      <button 
+        className="block w-full md:w-auto md:inline-block rounded-md px-3 py-2 transition-colors hover:bg-blue-200 hover:text-blue-700 border border-input bg-background"
+        onClick={handleLogin}
+      >
+        Iniciar Sesión
+      </button>
+      <button 
+        className="block w-full md:w-auto md:inline-block rounded-md px-3 py-2 transition-colors hover:bg-blue-700 hover:text-white bg-blue-600 text-white mt-2 md:mt-0 md:ml-2"
+        onClick={handleRegister}
+      >
+        Registrarse
+      </button>
+    </>
+  );
 
   return (
     <div className="relative min-h-screen flex flex-col">
@@ -133,38 +169,38 @@ const Layout = () => {
             <span>UNAN-León</span>
           </Link>
           <nav
-            className={`md:flex md:space-x-4 ${
-              menuOpen ? "block" : "hidden"
-            } absolute md:relative top-16 md:top-0 left-0 w-full md:w-auto bg-gray-100 md:bg-transparent shadow-md md:shadow-none`}
+            ref={menuRef}
+            className={`md:flex md:space-x-4 ${menuOpen ? "block" : "hidden"} absolute md:relative top-16 md:top-0 left-0 w-full md:w-auto bg-gray-100 md:bg-transparent shadow-md md:shadow-none z-50`}
           >
-            <Link
-              to="/orientacion"
-              className="block md:inline-block rounded-md px-3 py-2 transition-colors hover:bg-blue-200 hover:text-blue-700"
+            <button
+              onClick={() => handleNavigation("/orientacion")}
+              className="block w-full md:w-auto md:inline-block rounded-md px-3 py-2 transition-colors hover:bg-blue-200 hover:text-blue-700"
             >
               Orientación
-            </Link>
-            <Link
-              to="/aulas-virtuales"
-              className="block md:inline-block rounded-md px-3 py-2 transition-colors hover:bg-blue-200 hover:text-blue-700"
+            </button>
+            <button
+              onClick={() => handleNavigation("/aulas-virtuales")}
+              className="block w-full md:w-auto md:inline-block rounded-md px-3 py-2 transition-colors hover:bg-blue-200 hover:text-blue-700"
             >
               Aulas Virtuales
-            </Link>
-            <Link
-              to="/correo-institucional"
-              className="block md:inline-block rounded-md px-3 py-2 transition-colors hover:bg-blue-200 hover:text-blue-700"
+            </button>
+            <button
+              onClick={() => handleNavigation("/correo-institucional")}
+              className="block w-full md:w-auto md:inline-block rounded-md px-3 py-2 transition-colors hover:bg-blue-200 hover:text-blue-700"
             >
               Correo Institucional
-            </Link>
-            <Link
-              to="/mapa"
-              className="block md:inline-block rounded-md px-3 py-2 transition-colors hover:bg-blue-200 hover:text-blue-700"
+            </button>
+            <button
+              onClick={() => handleNavigation("/mapa")}
+              className="block w-full md:w-auto md:inline-block rounded-md px-3 py-2 transition-colors hover:bg-blue-200 hover:text-blue-700"
             >
               Mapa
-            </Link>
+            </button>
+            {!user && <div className="md:hidden"><AuthButtons /></div>}
           </nav>
           <div className="flex items-center gap-4">
             {user ? (
-              <div className="relative">
+              <div className="relative" ref={userMenuRef}>
                 <button 
                   className="flex items-center justify-center w-10 h-10 rounded-full bg-blue-500 text-white"
                   onClick={toggleUserMenu}
@@ -172,7 +208,7 @@ const Layout = () => {
                   <FontAwesomeIcon icon={faUser} />
                 </button>
                 {userMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1">
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50">
                     <p className="px-4 py-2 text-sm text-gray-700">{userName}</p>
                     <button 
                       className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
@@ -185,30 +221,24 @@ const Layout = () => {
                 )}
               </div>
             ) : (
-              <>
-                <button 
-                  className="items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 hidden sm:inline-flex"
-                  onClick={handleLogin}
-                >
-                  Iniciar Sesión
-                </button>
-                <button 
-                  className="items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-blue-600 text-white hover:bg-blue-700 h-10 px-4 py-2 hidden sm:inline-flex"
-                  onClick={handleRegister}
-                >
-                  Registrarse
-                </button>
-              </>
+              <div className="hidden md:flex md:space-x-2">
+                <AuthButtons />
+              </div>
             )}
-            <button className="md:hidden text-2xl" onClick={toggleMenu}>
+            <button
+              className="flex items-center justify-center w-10 h-10 rounded-md md:hidden"
+              onClick={toggleMenu}
+            >
               <FontAwesomeIcon icon={menuOpen ? faTimes : faBars} />
             </button>
           </div>
         </div>
       </header>
+
       <main className="flex-grow">
         <Outlet />
       </main>
+      
       <Footer />
     </div>
   );
