@@ -207,7 +207,7 @@ const InteractionSection = () => {
                   disabled={!usuario}
                 >
                   <FontAwesomeIcon icon={faThumbsUp} className="mr-2" />
-                  Me gusta
+                  {usuario && comentario.likes && comentario.likes.some(like => like.user_id === usuario.id) ? 'Quitar like' : 'Me gusta'}
                 </button>
                 <span className="bg-green-100 text-green-800 text-xs font-semibold px-2.5 py-0.5 rounded-full">
                   {comentario.likes ? comentario.likes.length : 0}
