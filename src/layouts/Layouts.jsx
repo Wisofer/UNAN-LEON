@@ -5,62 +5,49 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faBars, faTimes, faSignOutAlt, faUser } from "@fortawesome/free-solid-svg-icons";
 import Footer from "../pages/Footer";
 import { supabase } from '../supabase/supabase';
-import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { auth as firebaseAuth } from '../firebase/firebase';
 
 const Layout = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [user, setUser] = useState(null);
   const [userName, setUserName] = useState("Usuario");
-  const [authProvider, setAuthProvider] = useState("");
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const menuRef = useRef(null);
   const userMenuRef = useRef(null);
 
-  const handleAuthStateChange = async (supabaseUser, firebaseUser) => {
-    if (supabaseUser) {
-      setUser(supabaseUser);
-      setAuthProvider("supabase");
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('name')
-        .eq('id', supabaseUser.id)
-        .single();
-      setUserName(data?.name || "Usuario");
-    } else if (firebaseUser) {
-      setUser(firebaseUser);
-      setAuthProvider("firebase");
-      setUserName(firebaseUser.displayName || "Usuario");
+  const handleAuthStateChange = async (session) => {
+    if (session?.user) {
+      setUser(session.user);
+      if (session.user.app_metadata.provider === 'google') {
+        setUserName(session.user.user_metadata.full_name || "Usuario");
+      } else {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('name')
+          .eq('id', session.user.id)
+          .single();
+        setUserName(data?.name || "Usuario");
+      }
     } else {
       setUser(null);
-      setAuthProvider("");
       setUserName("Usuario");
     }
   };
 
   useEffect(() => {
-    const fetchSupabaseUser = async () => {
-      const { data: { user: supabaseUser } } = await supabase.auth.getUser();
-      handleAuthStateChange(supabaseUser, null);
-    };
-
-    const fetchFirebaseUser = () => {
-      onAuthStateChanged(firebaseAuth, (firebaseUser) => {
-        handleAuthStateChange(null, firebaseUser);
-      });
-    };
-
-    fetchSupabaseUser();
-    fetchFirebaseUser();
-
-    const authListener = supabase.auth.onAuthStateChange((event, session) => {
-      handleAuthStateChange(session?.user, null);
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      handleAuthStateChange(session);
     });
 
-    return () => authListener.data.subscription.unsubscribe();
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      handleAuthStateChange(session);
+    });
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
   }, []);
 
   useEffect(() => {
@@ -121,11 +108,7 @@ const Layout = () => {
   };
 
   const handleLogout = async () => {
-    if (authProvider === "supabase") {
-      await supabase.auth.signOut();
-    } else if (authProvider === "firebase") {
-      await signOut(firebaseAuth);
-    }
+    await supabase.auth.signOut();
     navigate('/');
     setUserMenuOpen(false);
   };
