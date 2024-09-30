@@ -11,6 +11,7 @@ import Mapa from './pages/Mapa.jsx'
 import NotFound from './pages/NotFound.jsx'
 import Register from './auth/Registers.jsx'
 import './index.css'
+import About from "./pages/About.jsx"
 
 const router = createBrowserRouter([
   {
@@ -36,6 +37,10 @@ const router = createBrowserRouter([
       {
         path: "Mapa",
         element: <Mapa />,
+      },
+      {
+        path: "About",
+        element: <About />,
       },
       {
         path: "*",

@@ -149,7 +149,7 @@ const Layout = () => {
             className="flex items-center gap-2 font-bold text-blue-500"
           >
             <img src={unan} alt="Logo" className="h-8 w-8" />
-            <span>UNAN-León</span>
+            <span>UNAN-León-Guia</span>
           </Link>
           <nav
             ref={menuRef}

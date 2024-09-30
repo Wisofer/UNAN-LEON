@@ -18,7 +18,7 @@ const Footer = () => {
             <nav className="flex flex-col space-y-2">
               <a href="#" className="hover:text-yellow-300 transition-colors duration-300">Facultades</a>
               <a href="#" className="hover:text-yellow-300 transition-colors duration-300">Biblioteca</a>
-              <a href="#" className="hover:text-yellow-300 transition-colors duration-300">Acerca del creador</a>
+              <a href="/about" className="hover:text-yellow-300 transition-colors duration-300">Acerca del creador</a>
             </nav>
           </div>
           <div className="flex flex-col items-center md:items-start">
