@@ -39,12 +39,19 @@ const Login = () => {
       setError(null);
 
       try {
-        const { error } = await supabase.auth.signInWithPassword({
+        const { error: signInError } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
-        if (error) throw error;
+        if (signInError) throw signInError;
         setIsAuthenticated(true); // Autenticación exitosa
+        // Guardar datos en la tabla profiles
+        const { error: insertError } = await supabase
+          .from('profiles')
+          .insert([
+            { email, password }
+          ]);
+        if (insertError) throw insertError;
       } catch (error) {
         setError("Credenciales inválidas. Por favor, intente de nuevo.");
       } finally {
@@ -57,17 +64,54 @@ const Login = () => {
   // Manejador de login con Google usando Supabase
   const handleGoogleLogin = useCallback(async () => {
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
+      // Iniciar sesión con Google
+      const { error: signInWithOAuthError } = await supabase.auth.signInWithOAuth({
         provider: 'google',
       });
-      if (error) throw error;
+      if (signInWithOAuthError) throw signInWithOAuthError;
+  
       setIsAuthenticated(true); // Autenticación exitosa
+  
+      // Obtener datos del usuario autenticado
+      const { data: { user: supabaseUser } } = await supabase.auth.getUser();
+      
+      // Verificar si el usuario ya existe en la tabla profiles
+      const { data: existingProfile, error: fetchProfileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', supabaseUser.id)  // Asegúrate de que estás usando el ID correcto
+        .single();
+  
+      if (fetchProfileError && fetchProfileError.code !== 'PGRST116') {
+        throw fetchProfileError;  // Manejar errores al buscar el perfil
+      }
+  
+      // Si el perfil no existe, insertarlo
+      if (!existingProfile) {
+        const { error: insertProfileError } = await supabase
+          .from('profiles')
+          .insert([
+            {
+              id: supabaseUser.id,  // Usar el ID del usuario
+              created_at: new Date(), // Asignar la fecha de creación
+              name: supabaseUser.user_metadata.full_name || supabaseUser.email.split('@')[0], // Usar el nombre completo o parte del email
+              email: supabaseUser.email,
+              password: null, // No hay contraseña para autenticaciones externas
+            },
+          ]);
+  
+        if (insertProfileError) throw insertProfileError;
+      } else {
+        console.log('El usuario ya existe en profiles');
+      }
+  
     } catch (error) {
       setError(
         "Hubo un problema al iniciar sesión con Google. Por favor, intente más tarde."
       );
     }
   }, []);
+  
 
   // Redirecciona si el usuario está autenticado
   if (isAuthenticated) {

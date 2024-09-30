@@ -69,61 +69,25 @@ const InteractionSection = () => {
 
   const publicarComentario = async () => {
     if (nuevoComentario.trim() === '') return;
-    
-    if (!usuario) {
-      setError('Debes iniciar sesión para publicar un comentario.');
-      return;
-    }
-  
+
+    // Usar el nombre de usuario anónimo si no está logueado
+    const nombre = usuario ? nombreUsuario : 'Anonymous';
+
     try {
       const { data, error } = await supabase
         .from('datos')
         .insert([{ 
           information: nuevoComentario, 
-          nombre_usuario: nombreUsuario,
-          user_id: usuario.id
+          nombre_usuario: nombre,
+          user_id: usuario ? usuario.id : null // Setear user_id a null si no está logueado
         }]);
-  
+
       if (error) throw error;
       setNuevoComentario('');
       await cargarComentarios();
     } catch (error) {
       console.error('Error al publicar comentario:', error);
       setError('Error al publicar comentario. Por favor, verifica tu conexión e intenta de nuevo.');
-    }
-  };
-  
-  const toggleRespuesta = (comentarioId) => {
-    setRespuestas(prevRespuestas => ({
-      ...prevRespuestas,
-      [comentarioId]: prevRespuestas[comentarioId] === undefined ? '' : undefined
-    }));
-  };
-
-  const responderComentario = async (comentarioId) => {
-    if (!respuestas[comentarioId] || respuestas[comentarioId].trim() === '') return;
-
-    if (!usuario) {
-      setError('Debes iniciar sesión para responder a un comentario.');
-      return;
-    }
-
-    try {
-      const { data, error } = await supabase
-        .from('respuestas')
-        .insert([{ 
-          comentario_id: comentarioId, 
-          contenido: respuestas[comentarioId],
-          user_id: usuario.id,
-          nombre_usuario: nombreUsuario
-        }]);
-
-      if (error) throw error;
-      setRespuestas({ ...respuestas, [comentarioId]: undefined });
-      await cargarComentarios();
-    } catch (error) {
-      console.error('Error al responder comentario:', error);
-      setError('Error al responder comentario. Por favor, intenta de nuevo.');
     }
   };
 
@@ -165,14 +129,44 @@ const InteractionSection = () => {
     }
   };
 
+  const toggleRespuesta = (comentarioId) => {
+    setRespuestas({ ...respuestas, [comentarioId]: respuestas[comentarioId] ? '' : 'Escribe tu respuesta aquí...' });
+  };
+
+  const responderComentario = async (comentarioId) => {
+    const respuesta = respuestas[comentarioId];
+    if (respuesta.trim() === '') return;
+
+    // Usar el nombre de usuario anónimo si no está logueado
+    const nombre = usuario ? nombreUsuario : 'Anonymous';
+
+    try {
+      const { error } = await supabase
+        .from('respuestas')
+        .insert([{ 
+          contenido: respuesta, 
+          nombre_usuario: nombre,
+          user_id: usuario ? usuario.id : null, // Setear user_id a null si no está logueado
+          comentario_id: comentarioId
+        }]);
+
+      if (error) throw error;
+      setRespuestas({ ...respuestas, [comentarioId]: '' });
+      await cargarComentarios();
+    } catch (error) {
+      console.error('Error al responder comentario:', error);
+      setError('Error al responder comentario. Por favor, verifica tu conexión e intenta de nuevo.');
+    }
+  };
+
   return (
     <section id="interaction" className="py-12 md:py-24 bg-gradient-to-b from-blue-50 to-white">
       <div className="container mx-auto px-4">
         <h2 className="text-4xl font-bold mb-4 text-center text-blue-600">Foro de Estudiantes</h2>
         <p className="text-gray-600 mb-8 text-center max-w-2xl mx-auto">Comparte tus experiencias, haz preguntas y colabora con otros estudiantes en este espacio interactivo.</p>
-        
+
         {error && <p className="text-red-500 text-center mb-4">{error}</p>}
-        
+
         {/* Lista de comentarios */}
         {comentarios.map((comentario) => (
           <div key={comentario.id} className="bg-white rounded-lg shadow-lg p-6 mb-6 transition-all duration-300 hover:shadow-xl">
@@ -195,20 +189,19 @@ const InteractionSection = () => {
                 Responder
               </button>
               <div className="flex items-center gap-3">
-                <button 
-                  className={`flex items-center text-sm transition duration-300 ${
-                    usuario
-                      ? comentario.likes && comentario.likes.some(like => like.user_id === usuario.id)
+                {usuario && (
+                  <button 
+                    className={`flex items-center text-sm transition duration-300 ${
+                      comentario.likes && comentario.likes.some(like => like.user_id === usuario.id)
                         ? 'text-green-700'
                         : 'text-green-500 hover:text-green-700'
-                      : 'text-gray-400 cursor-not-allowed'
-                  }`}
-                  onClick={() => toggleLike(comentario.id)}
-                  disabled={!usuario}
-                >
-                  <FontAwesomeIcon icon={faThumbsUp} className="mr-2" />
-                  {usuario && comentario.likes && comentario.likes.some(like => like.user_id === usuario.id) ? 'Quitar like' : 'Me gusta'}
-                </button>
+                    }`}
+                    onClick={() => toggleLike(comentario.id)}
+                  >
+                    <FontAwesomeIcon icon={faThumbsUp} className="mr-2" />
+                    {comentario.likes && comentario.likes.some(like => like.user_id === usuario.id) ? 'Quitar like' : 'Me gusta'}
+                  </button>
+                )}
                 <span className="bg-green-100 text-green-800 text-xs font-semibold px-2.5 py-0.5 rounded-full">
                   {comentario.likes ? comentario.likes.length : 0}
                 </span>
@@ -246,14 +239,14 @@ const InteractionSection = () => {
             ))}
           </div>
         ))}
-        
+
         {/* Formulario para nuevo comentario */}
         <div className="bg-white rounded-lg shadow-lg p-6">
           <h3 className="text-xl font-semibold mb-4 text-gray-800">Publica un comentario</h3>
           <textarea
             className="w-full p-3 border border-gray-300 rounded-md mb-4 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-300"
             rows="4"
-            placeholder="Escribe tu comentario aquí..."
+            placeholder="Escribe tu comentario..."
             value={nuevoComentario}
             onChange={(e) => setNuevoComentario(e.target.value)}
           ></textarea>
@@ -261,7 +254,6 @@ const InteractionSection = () => {
             className="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-full transition duration-300"
             onClick={publicarComentario}
           >
-            <FontAwesomeIcon icon={faPaperPlane} className="mr-2" />
             Publicar
           </button>
         </div>
