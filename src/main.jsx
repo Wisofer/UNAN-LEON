@@ -10,6 +10,7 @@ import Login from './auth/Login.jsx'
 import Mapa from './pages/Mapa.jsx'
 import NotFound from './pages/NotFound.jsx'
 import Register from './auth/Registers.jsx'
+import ForgotPassword from './auth/ForgotPassword.jsx'
 import './index.css'
 import About from "./pages/About.jsx"
 
@@ -55,6 +56,11 @@ const router = createBrowserRouter([
   {
     path: "/register",
     element: <Register />,
+  },
+
+  {
+    path: "/forgot",
+    element: <ForgotPassword />,
   },
 ]);
 
