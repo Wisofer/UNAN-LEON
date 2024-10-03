@@ -13,6 +13,7 @@ import Register from './auth/Registers.jsx'
 import ForgotPassword from './auth/ForgotPassword.jsx'
 import './index.css'
 import About from "./pages/About.jsx"
+import ResetPassword from './auth/ResetPassword.jsx'
 
 const router = createBrowserRouter([
   {
@@ -62,6 +63,13 @@ const router = createBrowserRouter([
     path: "/forgot",
     element: <ForgotPassword />,
   },
+
+  {
+    path: "/reset-password",
+    element: <ResetPassword/>,
+  },
+
+  
 ]);
 
 ReactDOM.createRoot(document.getElementById('root')).render(

@@ -19,7 +19,9 @@ const ForgotPassword = () => {
 
     try {
       // Intentar enviar el correo de recuperación
-      const { error } = await supabase.auth.resetPasswordForEmail(email);
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo : 'http://localhost:5173/reset-password'
+      });
       if (error) {
         // Manejar errores específicos
         if (error.message.includes('User not found')) {
